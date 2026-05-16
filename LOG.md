@@ -13,8 +13,7 @@
 
 #### Progress
 #### Progress
-- [x] Sherouk: Loaded SQuAD v2.0, inspected JSON structure, displayed 5 examples, and ran span alignment audit on all answer offsets
-- [x] Sherouk: Applied light cleaning (whitespace normalization) and removed all unanswerable questions (is_impossible == True)
+- [x] Sherouk: Loaded SQuAD v1.1, inspected JSON structure, displayed 5 examples, and ran span alignment audit on all answer offsets
 - [x] Sherouk: Implemented tokenizer with special tokens, truncation, and stride/window approach (doc_stride=128, max_length=512) and verified chunk shapes
 - [x] Sherouk: Implemented answer start and end offset mapping across all chunks and fixed early-return bug that corrupted labels for multi-chunk examples
 - [x] Sherouk: Split dataset at article level into 80/10/10 train/val/test, subset train to 50k QA pairs, and encoded all three splits
@@ -101,7 +100,7 @@
 #### Preliminary Results
 | Model | Exact Match | F1 Score |
 |-------|-------------|----------|
-| Baseline (BM25) | 0.18% | 14.96% |
+| Baseline (BM25) | 0.12% | 14.19% |
 | DistilBERT (fine-tuned) | [X]% | [X]% |
 
 
