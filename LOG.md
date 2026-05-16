@@ -1,4 +1,4 @@
-# Development Log - Project 14
+﻿# Development Log - Project 14
 # Efficient Extractive Question Answering on SQuAD with Distilled Models
 
 **Team Members:** Sherouk | Mostafa | Salma  
@@ -23,9 +23,9 @@
 - [ ] Mostafa: Read DistilBERT paper and studied HuggingFace QA API
 - [ ] Mostafa: Set up environment (dependencies, CPU config)
 - [ ] Mostafa: Ran sanity-check forward pass on DistilBertForQuestionAnswering
-- [ ] Salma: Studied SQuAD evaluation metrics (EM, F1)
-- [ ] Salma: Implemented/adapted official SQuAD evaluation script
-- [ ] Salma: Built results-logging utility (predictions to CSV)
+- [x] Salma: Studied the SQuAD evaluation metrics, Exact Match and token-level F1
+- [x] Salma: Used the SQuAD-style evaluation script functions to compute EM and F1
+- [x] Salma: Built results-logging utilities to save baseline/model predictions, scores, and summaries to CSV
 
 #### Key Decisions
 - Chose subset size of 50K QA pairs because [reason, e.g., fits within CPU memory/time budget]
@@ -54,8 +54,8 @@
   **Investigation:** Ran a single example diagnostic that revealed BM25 was correctly
   identifying the relevant sentence in most cases. For example, given the question
   "When was Gaddafi born, and when did he die?", BM25 correctly retrieved the sentence
-  containing the gold answer "1942 – 20 October 2011" but returned the full sentence
-  "1942 – 20 October 2011), commonly known as Colonel Gaddafi..." resulting in EM=0
+  containing the gold answer "1942 â€“ 20 October 2011" but returned the full sentence
+  "1942 â€“ 20 October 2011), commonly known as Colonel Gaddafi..." resulting in EM=0
   and F1=0.45 for that example.<br>
   **Root Cause:** BM25 is a sentence retriever not a span extractor. SQuAD gold answers
   are short precise spans so a full sentence prediction will almost never produce an exact
@@ -81,9 +81,10 @@
 - [ ] Mostafa: Fine-tuned DistilBERT on subset; logged metrics per epoch
 - [ ] Mostafa: Saved checkpoints and wrote inference script
 - [ ] Mostafa: Created hyperparameter config file
-- [ ] Salma: Ran evaluation against baseline and model outputs
-- [ ] Salma: Produced comparison tables and plots
-- [ ] Salma: Completed first-pass qualitative error analysis (10-15 examples)
+- [x] Salma: Ran evaluation on BM25 baseline and fine-tuned DistilBERT outputs using 500 validation examples
+- [x] Salma: Produced comparison table and EM/F1 bar chart
+- [x] Salma: Completed first-pass qualitative error analysis on 15 wrong DistilBERT predictions
+- [x] Salma: Added a small robustness check using 10 manually reworded questions
 
 #### Key Decisions
 - Chose learning rate of [X] because [reason, e.g., default from HuggingFace examples, then tuned]
@@ -93,15 +94,24 @@
 
 #### Issues & How They Were Resolved
 
-- **Issue:** [e.g., Evaluation script crashing on empty predictions]  
-  **Resolution:** [e.g., Added null-answer fallback in inference script]  
+- **Issue:** The evaluation functions `compute_exact` and `compute_f1` were not available when the Student C section was run separately.  
+  **Resolution:** Confirmed that the SQuAD-style evaluation script must be downloaded/imported before running the Student C evaluation cells. After importing the metric functions, the baseline and model evaluation ran correctly.  
+  **Resolved by:** Salma
+
+- **Issue:** Initial automatic paraphrases for the robustness check produced unnatural questions such as "Which thing role...".  
+  **Resolution:** Replaced them with 10 manually written paraphrases to make the robustness check more realistic and readable.  
   **Resolved by:** Salma
 
 #### Preliminary Results
 | Model | Exact Match | F1 Score |
 |-------|-------------|----------|
-| Baseline (BM25) | 0.12% | 14.19% |
-| DistilBERT (fine-tuned) | [X]% | [X]% |
+| Baseline (BM25) | 0.00% | 12.75% |
+| DistilBERT (fine-tuned) | 67.40% | 78.42% |
+
+Student C evaluation was run on 500 validation examples for a fair baseline/model comparison under runtime limits.
+
+
+
 
 
 
