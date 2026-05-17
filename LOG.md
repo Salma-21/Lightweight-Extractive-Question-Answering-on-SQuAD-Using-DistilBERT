@@ -18,7 +18,7 @@
 - [x] Sherouk: Implemented answer start and end offset mapping across all chunks and fixed early-return bug that corrupted labels for multi-chunk examples
 - [x] Sherouk: Split dataset at article level into 80/10/10 train/val/test, subset train to 50k QA pairs, and encoded all three splits
 - [x] Sherouk: Implemented BM25 baseline using rank_bm25 with official SQuAD scoring (max over all gold answers per question)
-- [x] Sherouk: Computed and reported baseline results (BM25: EM=0.18%, F1=14.96%) and ran diagnostic confirming low scores are inherent to sentence retrieval not a bug
+- [x] Sherouk: Computed and reported baseline results (BM25: EM=0.12%, F1=14.19%) and ran diagnostic confirming low scores are inherent to sentence retrieval not a bug
 - [x] Sherouk: Saved BM25 predictions to bm25_baseline_predictions.json for Student C error analysis and official eval script compatibility
 - [x] Mostafa: Read DistilBERT paper (Sanh et al., 2019) and studied HuggingFace QA API (DistilBertForQuestionAnswering, TrainingArguments, Trainer)
 - [x] Mostafa: Set up Google Colab environment; installed transformers==4.32.1, torch==2.0.1, datasets==2.13.0; resolved CUDA version conflict (CUDA 12.1 only)
@@ -49,7 +49,7 @@
   range, ensuring each chunk gets its own correctly computed start and end position.<br>
   **Resolved by:** Sherouk.<br>
 
-- **Issue:** BM25 baseline returned very low scores (EM: 0.18%, F1: 14.96%) which initially
+- **Issue:** BM25 baseline returned very low scores (EM: 0.12%, F1: 14.19%) which initially
   suggested a preprocessing or implementation bug.<br>
   **Investigation:** Ran a single example diagnostic that revealed BM25 was correctly
   identifying the relevant sentence in most cases. For example, given the question
@@ -77,10 +77,10 @@
 #### Progress
 - [x] Mostafa: Fixed critical integration bug — val_dataset was never defined by Student A; wrapped all preprocessing lists into HuggingFace Dataset objects using Dataset.from_dict() and applied .set_format('torch')
 - [x] Mostafa: Wrote full training loop using HuggingFace Trainer API with TrainingArguments (lr=2e-5, batch=16, grad_accum=2, epochs=3, weight_decay=0.01, warmup_ratio=0.10, fp16=True)
-- [x] Mostafa: Fine-tuned DistilBERT (66.4M params) on 50,230 training chunks for 3 epochs on Tesla T4 GPU; training completed in 0.59 hours (35 min 24 sec)
-- [x] Mostafa: Logged training loss per step and validation loss per epoch; Epoch 1 (train=1.3617, val=1.1718), Epoch 2 (train=1.1640, val=1.0864 ← best), Epoch 3 (train=1.0151, val=1.0875)
-- [x] Mostafa: Saved best checkpoint (Epoch 2, val_loss=1.0864) to ./distilbert-squad-final (252 MB); model restored automatically via load_best_model_at_end=True
-- [x] Mostafa: Wrote inference script; tested on 3 examples: "Who introduced BERT?" → "Devlin" (0.41), "How many params in DistilBERT?" → "66 million" (0.73), "What dataset?" → "SQuAD v1.1" (0.73); CPU latency: 212.17 ms/example
+- [x] Mostafa: Fine-tuned DistilBERT (66.4M params) on 50,068 training chunks for 3 epochs on Tesla T4 GPU; training completed in 0.59 hours (35 min 31 sec)
+- [x] Mostafa: Logged training loss per step and validation loss per epoch; Epoch 1 (train=1.4506, val=1.1979), Epoch 2 (train=1.1537, val=1.0980 ← best), Epoch 3 (train=0.9677, val=1.0917)
+- [x] Mostafa: Saved best checkpoint (Epoch 2, val_loss=1.0980) to ./distilbert-squad-final (252 MB); model restored automatically via load_best_model_at_end=True
+- [x] Mostafa: Wrote inference script; tested on 3 examples: "Who introduced BERT?" → "Devlin" (0.41), "How many params in DistilBERT?" → "66 million" (0.73), "What dataset?" → "SQuAD v1.1" (0.73); CPU latency: 140.13 ms/example
 - [x] Mostafa: Created hyperparameter config file (config.yaml) documenting all training settings for reproducibility
 - [x] Salma: Ran evaluation on BM25 baseline and fine-tuned DistilBERT outputs using 500 validation examples
 - [x] Salma: Produced comparison table and EM/F1 bar chart
@@ -91,7 +91,7 @@
 - Chose learning rate of 2e-5 because it is the standard for BERT/DistilBERT fine-tuning (Devlin et al., 2019); tested 5e-5 (unstable loss) and 1e-5 (too slow to converge); 2e-5 achieved steady convergence
 - Chose batch size of 16 (effective 32 with gradient_accumulation_steps=2) due to Tesla T4 GPU memory limit (15.6 GB VRAM); batch_size=32 caused OOM error
 - Decided on max_length=512 because DistilBERT max position embeddings = 512; covers ~99% of SQuAD examples without truncation; stride=128 maintained from Student A preprocessing
-- Chose 3 epochs because validation loss plateaued at Epoch 2 (1.0864) and slightly increased at Epoch 3 (1.0875); used load_best_model_at_end=True to restore best checkpoint automatically
+- Chose 3 epochs because validation loss plateaued at Epoch 2 (1.0980) and slightly increased at Epoch 3 (1.0917); used load_best_model_at_end=True to restore best checkpoint automatically
 
 #### Issues & How They Were Resolved
 
