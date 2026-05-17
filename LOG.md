@@ -21,7 +21,6 @@
 - [x] Sherouk: Computed and reported baseline results (BM25: EM=0.12%, F1=14.19%) and ran diagnostic confirming low scores are inherent to sentence retrieval not a bug
 - [x] Sherouk: Saved BM25 predictions to bm25_baseline_predictions.json for Student C error analysis and official eval script compatibility
 - [x] Mostafa: Read DistilBERT paper (Sanh et al., 2019) and studied HuggingFace QA API (DistilBertForQuestionAnswering, TrainingArguments, Trainer)
-- [x] Mostafa: Set up Google Colab environment; installed transformers==4.32.1, torch==2.0.1, datasets==2.13.0; resolved CUDA version conflict (CUDA 12.1 only)
 - [x] Mostafa: Ran sanity-check forward pass on DistilBertForQuestionAnswering with dummy batch (batch_size=2, seq_length=384); verified output shapes: start_logits [2, 384], end_logits [2, 384]
 - [x] Salma: Studied the SQuAD evaluation metrics, Exact Match and token-level F1
 - [x] Salma: Used the SQuAD-style evaluation script functions to compute EM and F1
