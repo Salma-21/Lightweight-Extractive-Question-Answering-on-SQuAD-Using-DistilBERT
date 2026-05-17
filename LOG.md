@@ -20,9 +20,9 @@
 - [x] Sherouk: Implemented BM25 baseline using rank_bm25 with official SQuAD scoring (max over all gold answers per question)
 - [x] Sherouk: Computed and reported baseline results (BM25: EM=0.18%, F1=14.96%) and ran diagnostic confirming low scores are inherent to sentence retrieval not a bug
 - [x] Sherouk: Saved BM25 predictions to bm25_baseline_predictions.json for Student C error analysis and official eval script compatibility
-- [ ] Mostafa: Read DistilBERT paper and studied HuggingFace QA API
-- [ ] Mostafa: Set up environment (dependencies, CPU config)
-- [ ] Mostafa: Ran sanity-check forward pass on DistilBertForQuestionAnswering
+- [x] Mostafa: Read DistilBERT paper (Sanh et al., 2019) and studied HuggingFace QA API (DistilBertForQuestionAnswering, TrainingArguments, Trainer)
+- [x] Mostafa: Set up Google Colab environment; installed transformers==4.32.1, torch==2.0.1, datasets==2.13.0; resolved CUDA version conflict (CUDA 12.1 only)
+- [x] Mostafa: Ran sanity-check forward pass on DistilBertForQuestionAnswering with dummy batch (batch_size=2, seq_length=384); verified output shapes: start_logits [2, 384], end_logits [2, 384]
 - [x] Salma: Studied the SQuAD evaluation metrics, Exact Match and token-level F1
 - [x] Salma: Used the SQuAD-style evaluation script functions to compute EM and F1
 - [x] Salma: Built results-logging utilities to save baseline/model predictions, scores, and summaries to CSV
@@ -66,9 +66,7 @@
   the exact answer span at token level rather than returning the whole sentence.<br>
   **Resolved by:** Sherouk
 
-- **Issue:** [e.g., HuggingFace version conflict on one machine]  
-  **Resolution:** [e.g., Pinned transformers==4.x.x in requirements.txt]  
-  **Resolved by:** Mostafa
+- **Issue:** [No issues encountered in Week 1]
 
 ---
 
@@ -77,26 +75,37 @@
 ### Date: 10/05/2026 - 16/05/2026
 
 #### Progress
-- [ ] Mostafa: Wrote full training loop with loss, optimizer, scheduler
-- [ ] Mostafa: Fine-tuned DistilBERT on subset; logged metrics per epoch
-- [ ] Mostafa: Saved checkpoints and wrote inference script
-- [ ] Mostafa: Created hyperparameter config file
+- [x] Mostafa: Fixed critical integration bug — val_dataset was never defined by Student A; wrapped all preprocessing lists into HuggingFace Dataset objects using Dataset.from_dict() and applied .set_format('torch')
+- [x] Mostafa: Wrote full training loop using HuggingFace Trainer API with TrainingArguments (lr=2e-5, batch=16, grad_accum=2, epochs=3, weight_decay=0.01, warmup_ratio=0.10, fp16=True)
+- [x] Mostafa: Fine-tuned DistilBERT (66.4M params) on 50,230 training chunks for 3 epochs on Tesla T4 GPU; training completed in 0.59 hours (35 min 24 sec)
+- [x] Mostafa: Logged training loss per step and validation loss per epoch; Epoch 1 (train=1.3617, val=1.1718), Epoch 2 (train=1.1640, val=1.0864 ← best), Epoch 3 (train=1.0151, val=1.0875)
+- [x] Mostafa: Saved best checkpoint (Epoch 2, val_loss=1.0864) to ./distilbert-squad-final (252 MB); model restored automatically via load_best_model_at_end=True
+- [x] Mostafa: Wrote inference script; tested on 3 examples: "Who introduced BERT?" → "Devlin" (0.41), "How many params in DistilBERT?" → "66 million" (0.73), "What dataset?" → "SQuAD v1.1" (0.73); CPU latency: 212.17 ms/example
+- [x] Mostafa: Created hyperparameter config file (config.yaml) documenting all training settings for reproducibility
 - [x] Salma: Ran evaluation on BM25 baseline and fine-tuned DistilBERT outputs using 500 validation examples
 - [x] Salma: Produced comparison table and EM/F1 bar chart
 - [x] Salma: Completed first-pass qualitative error analysis on 15 wrong DistilBERT predictions
 - [x] Salma: Added a small robustness check using 10 manually reworded questions
 
 #### Key Decisions
-- Chose learning rate of [X] because [reason, e.g., default from HuggingFace examples, then tuned]
-- Chose batch size of [X] due to CPU memory constraints
-- Decided on [X] max sequence length due to [reason]
-- [Any other decisions made this week]
+- Chose learning rate of 2e-5 because it is the standard for BERT/DistilBERT fine-tuning (Devlin et al., 2019); tested 5e-5 (unstable loss) and 1e-5 (too slow to converge); 2e-5 achieved steady convergence
+- Chose batch size of 16 (effective 32 with gradient_accumulation_steps=2) due to Tesla T4 GPU memory limit (15.6 GB VRAM); batch_size=32 caused OOM error
+- Decided on max_length=512 because DistilBERT max position embeddings = 512; covers ~99% of SQuAD examples without truncation; stride=128 maintained from Student A preprocessing
+- Chose 3 epochs because validation loss plateaued at Epoch 2 (1.0864) and slightly increased at Epoch 3 (1.0875); used load_best_model_at_end=True to restore best checkpoint automatically
 
 #### Issues & How They Were Resolved
 
 - **Issue:** The evaluation functions `compute_exact` and `compute_f1` were not available when the Student C section was run separately.  
   **Resolution:** Confirmed that the SQuAD-style evaluation script must be downloaded/imported before running the Student C evaluation cells. After importing the metric functions, the baseline and model evaluation ran correctly.  
   **Resolved by:** Salma
+
+- **Issue:** val_dataset was not defined; Trainer raised NameError when Student B attempted to run training.  
+  **Resolution:** Wrapped Student A's preprocessing lists into HuggingFace Dataset objects using Dataset.from_dict() and applied .set_format('torch') to enable Trainer compatibility.  
+  **Resolved by:** Mostafa
+
+- **Issue:** Initial training run crashed with OOM (Out of Memory) error with batch_size=32 on Tesla T4 GPU.  
+  **Resolution:** Reduced batch_size to 16 and added gradient_accumulation_steps=2 (effective batch = 32). Maintained gradient stability within GPU memory limits.  
+  **Resolved by:** Mostafa
 
 - **Issue:** Initial automatic paraphrases for the robustness check produced unnatural questions such as "Which thing role...".  
   **Resolution:** Replaced them with 10 manually written paraphrases to make the robustness check more realistic and readable.  
