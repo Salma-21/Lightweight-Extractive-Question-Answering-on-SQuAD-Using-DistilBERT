@@ -1,0 +1,15 @@
+name: Clean Notebooks
+
+on:
+  push:
+    paths: ['**.ipynb']
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ResearchSoftwareActions/EnsureCleanNotebooksAction@1.1
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-clean notebook metadata"
