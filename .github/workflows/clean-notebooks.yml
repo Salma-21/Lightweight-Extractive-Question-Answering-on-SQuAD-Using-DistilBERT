@@ -9,24 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Remove widgets metadata only
         run: |
           for file in *.ipynb; do
             if [ -f "$file" ]; then
-              python3 -c "
-              import json
-              with open('$file', 'r') as f:
-                  nb = json.load(f)
-              if 'widgets' in nb.get('metadata', {}):
-                  del nb['metadata']['widgets']
-                  print(f'Cleaned $file')
-              with open('$file', 'w') as f:
-                  json.dump(nb, f, indent=2)
-              "
+              python3 << EOF
+import json
+
+with open("$file", "r") as f:
+    nb = json.load(f)
+
+if "widgets" in nb.get("metadata", {}):
+    del nb["metadata"]["widgets"]
+    print("Cleaned", "$file")
+
+with open("$file", "w") as f:
+    json.dump(nb, f, indent=2)
+EOF
             fi
           done
-      
+
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: remove widgets metadata only"
