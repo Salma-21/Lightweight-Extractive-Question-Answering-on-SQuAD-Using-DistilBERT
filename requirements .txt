@@ -1,0 +1,11 @@
+torch==2.11.0
+transformers==5.10.2
+datasets==5.0.0
+accelerate==1.13.0
+tokenizers==0.22.2
+numpy==2.0.2
+pandas==2.2.2
+scikit-learn==1.6.1
+tqdm==4.67.3
+safetensors==0.7.0
+sentencepiece==0.2.1
