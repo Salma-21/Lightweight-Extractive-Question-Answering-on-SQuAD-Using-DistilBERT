@@ -1,4 +1,4 @@
-﻿# Development Log - Project 14
+# Development Log - Project 14
 # Efficient Extractive Question Answering on SQuAD with Distilled Models
 
 **Team Members:** Sherouk | Mostafa | Salma  
@@ -11,7 +11,6 @@
 
 ### Date: 03/05/2026 - 09/05/2026
 
-#### Progress
 #### Progress
 - [x] Sherouk: Loaded SQuAD v1.1, inspected JSON structure, displayed 5 examples, and ran span alignment audit on all answer offsets
 - [x] Sherouk: Implemented tokenizer with special tokens, truncation, and stride/window approach (doc_stride=128, max_length=512) and verified chunk shapes
@@ -27,45 +26,21 @@
 - [x] Salma: Built results-logging utilities to save baseline/model predictions, scores, and summaries to CSV
 
 #### Key Decisions
-- Chose subset size of 50K QA pairs because [reason, e.g., fits within CPU memory/time budget]
-- Decided on an 80% / 10% / 10% train/val/test split following the standard SQuAD dataset approach ([Rajpurkar et al., 2016](https://stanford.edu)).
-- Chose doc_stride=128 and max_length=512 for the strided tokenization window because
-  DistilBERT has a hard architectural limit of 512 tokens, and a stride of 128 ensures
-  consecutive windows overlap enough so the answer is never accidentally cut between two
-  chunks.
-- Chose BM25 (BM25Okapi) as the retrieval baseline over TF-IDF following established practice
-  in QA literature, where it is used as the standard strong retrieval baseline on SQuAD
-  ([Karpukhin et al., 2020](https://arxiv.org/abs/2004.04906)).
+- Chose subset size of 50K QA pairs because it fits within CPU memory and time budget
+- Decided on an 80% / 10% / 10% train/val/test split following the standard SQuAD dataset approach (Rajpurkar et al., 2016)
+- Chose doc_stride=128 and max_length=512 for the strided tokenization window because DistilBERT has a hard architectural limit of 512 tokens, and a stride of 128 ensures consecutive windows overlap enough so the answer is never accidentally cut between two chunks
+- Chose BM25 (BM25Okapi) as the retrieval baseline over TF-IDF following established practice in QA literature, where it is used as the standard strong retrieval baseline on SQuAD (Karpukhin et al., 2020)
 
 #### Issues & How They Were Resolved
-- **Issue:** `offset_mapping` function contained a `return` statement inside the chunk loop,
-  causing it to always exit after the first chunk regardless of whether the answer was found.
-  For multi-chunk examples this produced incorrect `(0, 0)` positions pointing to `[CLS]`
-  instead of the real answer span, silently corrupting training labels.<br>
-  **Resolution:** Moved the `return` outside the loop by collecting all chunk results in a
-  `results` list and returning it after the loop completes. Updated all three encoding loops
-  (train, val, test) to iterate over `chunk_positions` using `enumerate` instead of a fixed
-  range, ensuring each chunk gets its own correctly computed start and end position.<br>
-  **Resolved by:** Sherouk.<br>
-
-- **Issue:** BM25 baseline returned very low scores (EM: 0.12%, F1: 14.19%) which initially
-  suggested a preprocessing or implementation bug.<br>
-  **Investigation:** Ran a single example diagnostic that revealed BM25 was correctly
-  identifying the relevant sentence in most cases. For example, given the question
-  "When was Gaddafi born, and when did he die?", BM25 correctly retrieved the sentence
-  containing the gold answer "1942 â€“ 20 October 2011" but returned the full sentence
-  "1942 â€“ 20 October 2011), commonly known as Colonel Gaddafi..." resulting in EM=0
-  and F1=0.45 for that example.<br>
-  **Root Cause:** BM25 is a sentence retriever not a span extractor. SQuAD gold answers
-  are short precise spans so a full sentence prediction will almost never produce an exact
-  match and will always have low F1 due to the extra words. This is an inherent limitation
-  of retrieval-based baselines on extractive QA tasks, not a bug.<br>
-  **Resolution:** Confirmed the implementation is correct. The low numbers are expected
-  and explainable. This finding motivates the use of DistilBERT which learns to extract
-  the exact answer span at token level rather than returning the whole sentence.<br>
+- **Issue:** `offset_mapping` function contained a `return` statement inside the chunk loop, causing it to always exit after the first chunk regardless of whether the answer was found. For multi-chunk examples this produced incorrect `(0, 0)` positions pointing to `[CLS]` instead of the real answer span, silently corrupting training labels.  
+  **Resolution:** Moved the `return` outside the loop by collecting all chunk results in a `results` list and returning it after the loop completes. Updated all three encoding loops (train, val, test) to iterate over `chunk_positions` using `enumerate` instead of a fixed range, ensuring each chunk gets its own correctly computed start and end position.  
   **Resolved by:** Sherouk
 
-- **Issue:** [No issues encountered in Week 1]
+- **Issue:** BM25 baseline returned very low scores (EM: 0.12%, F1: 14.19%) which initially suggested a preprocessing or implementation bug.  
+  **Investigation:** Ran a single example diagnostic that revealed BM25 was correctly identifying the relevant sentence in most cases. For example, given the question "When was Gaddafi born, and when did he die?", BM25 correctly retrieved the sentence containing the gold answer but returned the full sentence, resulting in EM=0 and F1=0.45 for that example.  
+  **Root Cause:** BM25 is a sentence retriever not a span extractor. SQuAD gold answers are short precise spans so a full sentence prediction will almost never produce an exact match and will always have low F1 due to the extra words. This is an inherent limitation of retrieval-based baselines on extractive QA tasks, not a bug.  
+  **Resolution:** Confirmed the implementation is correct. The low numbers are expected and explainable. This finding motivates the use of DistilBERT which learns to extract the exact answer span at token level rather than returning the whole sentence.  
+  **Resolved by:** Sherouk
 
 ---
 
@@ -93,7 +68,6 @@
 - Chose 3 epochs because validation loss plateaued at Epoch 2 (1.0980) and slightly increased at Epoch 3 (1.0917); used load_best_model_at_end=True to restore best checkpoint automatically
 
 #### Issues & How They Were Resolved
-
 - **Issue:** The evaluation functions `compute_exact` and `compute_f1` were not available when the Student C section was run separately.  
   **Resolution:** Confirmed that the SQuAD-style evaluation script must be downloaded/imported before running the Student C evaluation cells. After importing the metric functions, the baseline and model evaluation ran correctly.  
   **Resolved by:** Salma
@@ -116,10 +90,164 @@
 | Baseline (BM25) | 0.00% | 12.75% |
 | DistilBERT (fine-tuned) | 67.40% | 78.42% |
 
-Student C evaluation was run on 500 validation examples for a fair baseline/model comparison under runtime limits.
+---
 
+## Week 3
 
+### Date: 17/05/2026 - 23/05/2026
 
+#### Progress
+- [x] Mostafa: Read TinyBERT paper (Jiao et al., 2020) and set up TinyBERT fine-tuning pipeline using huawei-noah/TinyBERT_General_4L_312D checkpoint
+- [x] Mostafa: Fine-tuned TinyBERT on the same 50,068 training chunks; required 20 epochs to converge due to compressed architecture
+- [x] Mostafa: Logged TinyBERT training and validation loss across all 20 epochs; confirmed stable convergence with no overfitting
+- [x] Salma: Ran full evaluation of TinyBERT on validation and test sets; logged EM, F1, and inference latency
+- [x] Salma: Produced side-by-side comparison of DistilBERT and TinyBERT results
 
+#### Key Decisions
+- Chose 20 epochs for TinyBERT because the model required significantly more training steps to converge compared to DistilBERT, consistent with findings in the original TinyBERT paper
+- Kept all other hyperparameters consistent with DistilBERT training for fair comparison
 
+#### Preliminary Results
+| Model | Exact Match | F1 Score | Latency (ms) | Params |
+|-------|-------------|----------|--------------|--------|
+| TinyBERT (fine-tuned) | 27.40% | 36.02% | 12.46 | 14.5M |
+| DistilBERT (fine-tuned) | 66.80% | 77.93% | 104.0 | 66M |
 
+---
+
+## Week 4
+
+### Date: 24/05/2026 - 30/05/2026
+
+#### Progress
+- [x] Mostafa: Designed and ran sequence-length ablation for both DistilBERT and TinyBERT across three input lengths: 128, 256, and 384 tokens
+- [x] Mostafa: Logged EM, F1, and CPU inference latency for each sequence length configuration
+- [x] Salma: Designed and ran TinyBERT layer-freezing ablation across three configurations: freeze layer 0 only, freeze layers 0-1, and freeze layers 0-3
+- [x] Salma: Logged EM, F1, validation loss, trainable parameters, training time, and inference latency for each TinyBERT freezing configuration
+- [x] Salma: Designed and ran TinyBERT stratified data-size ablation across three subsets: 25%, 50%, and 70%
+- [x] Salma: Logged EM, F1, and training time for each TinyBERT data-size configuration
+
+#### Key Decisions
+- Used stratified sampling by article title for TinyBERT data-size ablation to preserve topic coverage across subsets
+- Kept all other hyperparameters fixed across ablation configurations to isolate the effect of each variable
+
+#### Results — Sequence Length Ablation
+
+| Model | EM @ 128 | EM @ 256 | EM @ 384 | Latency @ 128 (ms) | Latency @ 256 (ms) | Latency @ 384 (ms) |
+|-------|----------|----------|----------|--------------------|--------------------|-------------------|
+| DistilBERT | 65.40% | 65.60% | 65.60% | 56.43 | 49.87 | 71.35 |
+| TinyBERT | 34.20% | 27.80% | 27.40% | 10.03 | 9.21 | 12.46 |
+
+#### Results — TinyBERT Layer-Freezing Ablation
+
+| Configuration | EM (%) | F1 (%) | Val Loss | Trainable Params (M) | Training Time (hrs) | Latency (ms) |
+|---|---|---|---|---|---|---|
+| Freeze layer 0 | 25.00 | 35.12 | 1.79 | 13.11 | 1.38 | 3.27 |
+| Freeze layers 0-1 | 13.00 | 18.23 | 2.01 | 11.97 | 1.38 | 3.15 |
+| Freeze layers 0-3 | 1.50 | 7.30 | 4.13 | 9.68 | 1.31 | 3.22 |
+
+#### Results — TinyBERT Data-Size Ablation
+
+| Data Size | Chunks | EM (%) | F1 (%) | Training Time (hrs) |
+|---|---|---|---|---|
+| 25% | 12,631 | 18.00 | 26.52 | 0.42 |
+| 50% | 25,263 | 23.50 | 33.06 | 0.74 |
+| 70% | 35,368 | 24.00 | 34.41 | 1.00 |
+
+---
+
+## Week 5
+
+### Date: 31/05/2026 - 06/06/2026
+
+#### Progress
+- [x] Sherouk: Implemented layer-freezing ablation for DistilBERT across three configurations: full fine-tuning, freeze embedding + 2 transformer layers, and freeze embedding + 4 transformer layers
+- [x] Sherouk: Ran all three freezing configurations and logged EM, F1, trainable parameters, training time, and inference latency for each
+- [x] Sherouk: Documented freezing results and identified emb+2layers as the recommended configuration based on cost-benefit analysis
+
+#### Key Decisions
+- Tested three freezing levels to isolate the point where frozen layers start hurting answer quality
+- Due to compute limitations, ran a coarse search only — a fine-grained hyperparameter search was planned but not feasible within available resources
+- Chose to evaluate on the same validation split used in the baseline to ensure fair comparison
+
+#### Issues & How They Were Resolved
+- **Issue:** Compute budget did not allow for a full fine-grained hyperparameter search across freezing configurations.  
+  **Resolution:** Ran a coarse search only, testing three fixed configurations. Results were still sufficient to draw clear conclusions about the trade-off between frozen layers and answer quality.  
+  **Resolved by:** Sherouk
+
+#### Results — DistilBERT Layer-Freezing Ablation
+
+| Configuration | EM (%) | F1 (%) | Trainable Params (M) | Training Time (hrs) | Latency (ms) |
+|---|---|---|---|---|---|
+| Full fine-tuning | 63.0 | 72.8 | 66.36 | 0.79 | 7.67 |
+| Freeze emb + 2 layers | 60.5 | 72.3 | 28.35 | 0.62 | 7.23 |
+| Freeze emb + 4 layers | 48.0 | 58.4 | 14.18 | 0.47 | 7.29 |
+
+---
+
+## Week 6
+
+### Date: 07/06/2026 - 13/06/2026
+
+#### Progress
+- [x] Sherouk: Implemented data-size ablation for DistilBERT by training on three subsets of the training data: 15%, 25%, and 35%
+- [x] Sherouk: Ran all three data-size configurations and logged EM, F1, and training time for each
+- [x] Sherouk: Identified 25% as the practical sweet spot based on the clear drop in returns beyond that threshold
+- [x] Sherouk: Documented findings showing diminishing returns pattern consistent across both DistilBERT and TinyBERT
+
+#### Key Decisions
+- Chose 15%, 25%, and 35% as the three data size levels to cover a meaningful range without exceeding compute budget
+- Due to compute limitations, each configuration was run once only — the original plan was to aggregate results across 3 runs per configuration to report mean and standard deviation, but this was not feasible
+
+#### Issues & How They Were Resolved
+- **Issue:** Compute budget did not allow running each data-size configuration multiple times, which was the original plan to ensure statistical reliability.  
+  **Resolution:** Each configuration was run once only. Results show a clear and consistent trend, but confidence intervals could not be reported. This is acknowledged as a limitation in the final report.  
+  **Resolved by:** Sherouk
+
+#### Results — DistilBERT Data-Size Ablation
+
+| Data Size | Examples | EM (%) | F1 (%) | Training Time (hrs) |
+|---|---|---|---|---|
+| 15% | 7,510 | 38.5 | 46.8 | 0.16 |
+| 25% | 12,517 | 55.5 | 66.0 | 0.23 |
+| 35% | 17,523 | 58.0 | 67.8 | 0.30 |
+
+---
+
+## Week 7
+
+### Date: 14/06/2026 - 20/06/2026
+
+#### Progress
+- [x] Sherouk: Consolidated all DistilBERT ablation results and wrote the methodology and results sections of the final report covering layer-freezing and data-size experiments
+- [x] Sherouk: Reviewed all ablation findings across both models and contributed to the discussion section on cost-benefit trade-offs
+- [x] Mostafa: Wrote related work section covering DistilBERT, TinyBERT, and knowledge distillation literature
+- [x] Mostafa: Wrote discussion and conclusion sections synthesizing findings across all experiments
+- [x] Mostafa: Compiled and formatted all references
+- [x] Salma: Wrote TinyBERT results and analysis sections covering layer-freezing and data-size ablations
+- [x] Salma: Collected and verified all TinyBERT efficiency metrics for the final comparison table
+- [x] Salma: Proofread and formatted the full report for submission
+
+#### Key Decisions
+- Decided to acknowledge single-seed limitation explicitly in the limitations section rather than omitting it
+- Chose to present all ablation results in unified tables for easier cross-model comparison
+
+#### Final Results Summary
+
+| Model | EM (%) | F1 (%) | Latency (ms) | Params |
+|-------|--------|--------|--------------|--------|
+| BM25 Baseline | 0.00 | 12.75 | N/A | N/A |
+| TF-IDF Baseline | 0.11 | 15.25 | N/A | N/A |
+| TinyBERT | 27.40 | 36.02 | 12.46 | 14.5M |
+| DistilBERT | 66.80 | 77.93 | 104.0 | 66M |
+
+#### Key Takeaways
+- Freezing the embedding layer plus two transformer layers retains 99.3% of DistilBERT F1 while reducing trainable parameters by 57.3%
+- 25% of training data captures most of DistilBERT performance; returns diminish significantly beyond that threshold
+- DistilBERT is the right choice when accuracy matters; TinyBERT is 8.3x faster and better suited for latency-critical deployment
+- Layer freezing saves training time but does not reduce inference latency in either model
+
+#### Issues & How They Were Resolved
+- **Issue:** Inconsistent formatting across sections written by different team members.  
+  **Resolution:** Salma did a full pass to unify formatting, table styles, and citation format across the entire report.  
+  **Resolved by:** Salma
